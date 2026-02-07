@@ -25,6 +25,16 @@ class DataStream(ABC):
             "type": self.type
             }
 
+    def parse_line(self, item: Any) -> Optional[tuple[str, str]]:
+        try:
+            if isinstance(item, str) and ":" in item:
+                parts = item.split(":", 1)
+                if len(parts) == 2:
+                    return parts[0].strip().lower(), parts[1].strip()
+        except Exception:
+            pass
+        return None
+
 
 class SensorStream(DataStream):
     def __init__(self, stream_id: str) -> None:
@@ -33,17 +43,17 @@ class SensorStream(DataStream):
 
     def process_batch(self, data_batch: List[Any]) -> str:
         temperatures = []
-
         for item in data_batch:
-            if isinstance(item, str) and ":" in item:
-                parts = item.split(":", 1)
-                key = parts[0].strip().lower()
+            parsed = self.parse_line(item)
+            if parsed:
+                key, val_str = parsed
                 try:
-                    value = float(parts[1].strip())
+                    val = float(val_str)
                     if "temp" in key:
-                        temperatures.append(value)
-                except ValueError:
+                        temperatures.append(val)
+                except (ValueError):
                     continue
+
         if not temperatures:
             return f"Stream {self.stream_id}: No temperature data found"
 
@@ -65,9 +75,10 @@ class SensorStream(DataStream):
         filtered = []
         if criteria == "critical":
             for item in data_batch:
-                if isinstance(item, str) and ":" in item:
+                parsed = self.parse_line(item)
+                if parsed:
                     try:
-                        val = float(item.split(":")[1].strip())
+                        val = float(parsed[1])
                         if val > 50 or val < 0:
                             filtered.append(item)
                     except ValueError:
@@ -92,15 +103,15 @@ class TransactionStream(DataStream):
         sells = []
 
         for item in data_batch:
-            if isinstance(item, str) and ":" in item:
-                parts = item.split(":", 1)
-                key = parts[0].strip().lower()
+            parsed = self.parse_line(item)
+            if parsed:
+                key, val_str = parsed
                 try:
-                    value = int(parts[1].strip())
+                    val = int(val_str)
                     if "buy" in key:
-                        buys.append(value)
+                        buys.append(val)
                     elif "sell" in key:
-                        sells.append(value)
+                        sells.append(val)
                 except ValueError:
                     continue
 
@@ -119,9 +130,10 @@ class TransactionStream(DataStream):
         filtered = []
         if criteria == "large":
             for item in data_batch:
-                if isinstance(item, str) and ":" in item:
+                parsed = self.parse_line(item)
+                if parsed:
                     try:
-                        val = int(item.split(":")[1].strip())
+                        val = int(parsed[1])
                         if val >= 100:
                             filtered.append(item)
                     except ValueError:
@@ -152,9 +164,7 @@ class EventStream(DataStream):
 
         self.total_errors += error_count
 
-        msg_error = "errors detected" if error_count > 1 else "error detected"
-        if error_count == 0:
-            msg_error = "errors detected"
+        msg_error = "error detected" if error_count == 1 else "errors detected"
 
         return (f"Event analysis: {len(data_batch)} events, {error_count} "
                 f"{msg_error}")
@@ -174,16 +184,18 @@ class StreamProcessor():
 
     def process_stream(self, stream_id: str, data_batch: List[Any]) -> str:
         if stream_id in self.streams:
-            stream = self.streams[stream_id]
-            resultat = stream.process_batch(data_batch)
-            return resultat
+            try:
+                stream = self.streams[stream_id]
+                return stream.process_batch(data_batch)
+            except Exception as e:
+                return (f"Error: Failed to process stream {stream_id}. "
+                        f"Reason {str(e)}")
         else:
             return f"Error: Stream {stream_id} not found."
 
 
 def main() -> None:
     print("=== CODE NEXUS - POLYMORPHIC STREAM SYSTEM ===")
-
     processor = StreamProcessor()
 
     print("\nInitializing Sensor Stream...")
