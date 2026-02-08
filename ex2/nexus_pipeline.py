@@ -11,12 +11,13 @@ class ProcessingStage(Protocol):
     def process(self, data: Any) -> Any:
         ...
 
+
 class InputStage:
     """
     Stage 1: Simulates input validation and parsing.
     """
     def process(self, data: Any) -> Any:
-        # Example logic: ensure data isn't empty
+        print("Stage 1: Input validation and parsing")
         if not data:
             raise ValueError("InputStage: Data cannot be empty.")
         return data
@@ -27,9 +28,8 @@ class TransformStage:
     Stage 2: Simulates data transformation and enrichment.
     """
     def process(self, data: Any) -> Any:
-        # Example logic: wrapper or modification
-        if isinstance(data, str):
-            return f"Transformed: {data}"
+        print("Stage 2: Data transformation and enrichment")
+        ###MISSING CLEAN DATA
         return data
 
 
@@ -38,8 +38,9 @@ class OutputStage:
     Stage 3: Simulates output formatting and delivery.
     """
     def process(self, data: Any) -> Any:
-        # Example logic: final formatting
-        return f"Output: {data}"
+        print("Stage 3: Output formatting and delivery")
+        ###MISSING STORAGE DATA PROPERLY
+        return data
 
 
 class ProcessingPipeline(ABC):
@@ -71,3 +72,47 @@ class ProcessingPipeline(ABC):
             The processed result.
         """
         pass
+
+
+class JSONAdapter(ProcessingPipeline):
+    def __init__(self, pipeline_id: str):
+        super().__init__()
+        self.pipeline_id = pipeline_id     
+    
+    def process(self, data: Any) -> Any:
+        for stage in self.stages:
+            data = stage.process(data)
+        return data
+
+
+class CSVAdapter(ProcessingPipeline):
+    def __init__(self, pipeline_id: str):
+        super().__init__()
+        self.pipeline_id = pipeline_id     
+
+    def process(self, data: Any) -> Any:
+        for stage in self.stages:
+            data = stage.process(data)
+        return data
+
+
+class StreamAdapter(ProcessingPipeline):
+    def __init__(self, pipeline_id: str):
+        super().__init__()
+        self.pipeline_id = pipeline_id     
+    
+    def process(self, data: Any) -> Any:
+        for stage in self.stages:
+            data = stage.process(data)
+        return data
+    
+def main () -> None:
+    print("=== CODE NEXUS - ENTERPRISE PIPELINE SYSTEM ===\n")
+
+    ####MISSING NEXUS MANAGER
+
+    print("Creating Data Processing Pipeline...")
+    
+
+if __name__ == "__main__":
+    main()
