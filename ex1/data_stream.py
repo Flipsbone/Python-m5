@@ -196,34 +196,34 @@ class StreamProcessor():
 
 def main() -> None:
     print("=== CODE NEXUS - POLYMORPHIC STREAM SYSTEM ===")
+
     processor = StreamProcessor()
 
     print("\nInitializing Sensor Stream...")
+
     sensor = SensorStream("SENSOR_001")
     processor.add_stream(sensor)
-
     print(f"Stream ID: {sensor.stream_id}, Type: {sensor.type}")
-
     sensor_data = ["temp:22.5", "humidity:65", "pressure:1013"]
-    print(f"Processing sensor batch: [{', '.join(sensor_data)}]")
+    print(f"Processing sensor batch: {str(sensor_data).replace("'", "")}")
     print(processor.process_stream("SENSOR_001", sensor_data))
 
     print("\nInitializing Transaction Stream...")
+
     transaction = TransactionStream("TRANS_001")
     processor.add_stream(transaction)
     print(f"Stream ID: {transaction.stream_id}, Type: {transaction.type}")
-
     trans_data = ["buy:100", "sell:150", "buy:75"]
-    print(f"Processing transaction batch: [{', '.join(trans_data)}]")
+    print(f"Processing transaction batch: {str(trans_data).replace("'", "")}")
     print(processor.process_stream("TRANS_001", trans_data))
 
     print("\nInitializing Event Stream...")
+
     event = EventStream("EVENT_001")
     processor.add_stream(event)
     print(f"Stream ID: {event.stream_id}, Type: {event.type}")
-
     event_data = ["login", "error", "logout"]
-    print(f"Processing event batch: [{', '.join(event_data)}]")
+    print(f"Processing event batch: {str(event_data).replace("'", "")}")
     print(processor.process_stream("EVENT_001", event_data))
 
     print("\n=== Polymorphic Stream Processing ===")
@@ -253,9 +253,9 @@ def main() -> None:
         poly_sensor_data, criteria="critical")
     large_transactions = transaction.filter_data(
         poly_trans_data, criteria="large")
+
     print(f"Filtered results: {len(critical_sensors)} critical sensor alerts, "
           f"{len(large_transactions)} large transaction")
-
     print("\nAll streams processed successfully. Nexus throughput optimal.")
 
 
