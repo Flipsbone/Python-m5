@@ -1,31 +1,78 @@
 #!/usr/bin/env python3
+"""
+CODE NEXUS: Polymorphic Stream System
+This module implements a polymorphic stream processing system
+"""
 
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Union, Optional
 
 
 class DataStream(ABC):
+    """Abstract base class for different types of data streams.
+    Enforces a common interface for processing, filtering, and stats retrieval,
+    while allowing for specialized behavior in concrete stream types.
+    Attributes:
+        stream_id: A unique identifier for the data stream.
+        type: A string representing the type of data stream
+                (e.g., "Sensor", "Transaction", "Event").
+    """
 
     def __init__(self, stream_id: str, type: str) -> None:
-        self.stream_id = stream_id
-        self.type = type
+        """Initialize the data stream with an ID and type.
+        Args:
+            stream_id: A unique identifier for the data stream.
+            type: A string representing the type of data stream
+                    (e.g., "Sensor", "Transaction", "Event").
+        """
+        self.stream_id: str = stream_id
+        self.type: str = type
 
     @abstractmethod
     def process_batch(self, data_batch: List[Any]) -> str:
+        """Process a batch of data items and return a summary string.
+        Args:
+            data_batch: A list of data items to be processed.
+        Returns:
+            A string summarizing the results of processing the batch.
+        """
         pass
 
     def filter_data(
             self, data_batch: List[Any],
             criteria: Optional[str] = None) -> List[Any]:
+        """Filter the data batch based on specified criteria.
+        Args:
+            data_batch: A list of data items to be filtered.
+            criteria: An optional string specifying the filter criteria.
+        Returns:
+            A list of data items that meet the filter criteria.
+        """
+
         return data_batch
 
     def get_stats(self) -> Dict[str, Union[str, int, float]]:
+        """Retrieve statistics about the data stream.
+        Returns:
+            A dictionary containing statistics such as stream ID, type, and
+            other relevant metrics.
+        """
+
         return {
             "stream_id": self.stream_id,
             "type": self.type
             }
 
     def parse_line(self, item: Any) -> Optional[tuple[str, str]]:
+        """Parse a data item into a key-value pair if possible.
+        Args:
+            item: The data item to be parsed, expected to be a string in the
+                    format "key:value".
+        Returns:
+            A tuple of (key, value) if parsing is successful, or None if the
+            item cannot be parsed.
+        """
+
         try:
             if isinstance(item, str) and ":" in item:
                 parts = item.split(":", 1)
@@ -37,12 +84,33 @@ class DataStream(ABC):
 
 
 class SensorStream(DataStream):
+    """Concrete implementation of DataStream for processing sensor data.
+    This stream type focuses on analyzing temperature readings and generating
+    alerts for extreme values.
+    """
+
     def __init__(self, stream_id: str) -> None:
+        """Initialize the sensor stream with a unique ID and set type to
+        'Environmental Data'.
+        Args:
+            stream_id: A unique identifier for the sensor data stream.
+        """
+
         super().__init__(stream_id, "Environmental Data")
         self.last_avg = 0.0
 
     def process_batch(self, data_batch: List[Any]) -> str:
-        temperatures = []
+        """Process a batch of sensor data, calculating average temperature and
+        generating alerts for extreme values.
+        Args:
+            data_batch: A list of sensor data items, expected to contain
+                        temperature readings in the format "temp:value".
+        Returns:
+            A string summarizing the average temperature and any alerts for
+            extreme values.
+        """
+
+        temperatures: List[float] = []
         for item in data_batch:
             parsed = self.parse_line(item)
             if parsed:
@@ -71,6 +139,15 @@ class SensorStream(DataStream):
     def filter_data(
             self, data_batch: List[Any],
             criteria: Optional[str] = None) -> List[Any]:
+        """Filter sensor data based on specified criteria,
+        such as critical temperature alerts.
+        Args:
+            data_batch: A list of sensor data items to be filtered.
+            criteria: An optional string specifying the filter criteria (e.g.,
+                    "critical" to filter for extreme temperature values).
+        Returns:
+            A list of sensor data items that meet the filter criteria.
+        """
 
         filtered = []
         if criteria == "critical":
@@ -87,20 +164,47 @@ class SensorStream(DataStream):
         return super().filter_data(data_batch, criteria)
 
     def get_stats(self) -> Dict[str, Union[str, int, float]]:
+        """Extend base stats with sensor-specific metrics, such as last average
+        temperature.
+            Returns:
+                A dictionary containing base statistics along
+                with sensor-specific metrics.
+            """
+
         stats = super().get_stats()
         stats["last_average"] = self.last_avg
         return stats
 
 
 class TransactionStream(DataStream):
-
+    """Concrete implementation of DataStream for processing
+    financial transaction data. This stream type focuses on analyzing
+    buy/sell transactions and calculating net flow.
+    """
     def __init__(self, stream_id: str) -> None:
+        """Initialize the transaction stream with a unique ID and set type to
+        'Financial Data'.
+        Args:
+            stream_id: A unique identifier for the transaction data stream.
+        """
+
         super().__init__(stream_id, "Financial Data")
         self.net_flow = 0
 
     def process_batch(self, data_batch: List[Any]) -> str:
-        buys = []
-        sells = []
+        """Process a batch of transaction data, calculating net flow of
+        buy/sell transactions.
+        Args:
+            data_batch: A list of transaction data items, expected to contain
+                        buy/sell transactions in the format "buy:value" or
+                        "sell:value".
+        Returns:
+            A string summarizing the total number of transactions and the net
+            flow of units bought/sold.
+        """
+
+        buys: List[int] = []
+        sells: List[int] = []
 
         for item in data_batch:
             parsed = self.parse_line(item)
@@ -127,6 +231,16 @@ class TransactionStream(DataStream):
 
     def filter_data(self, data_batch: List[Any],
                     criteria: Optional[str] = None) -> List[Any]:
+        """Filter transaction data based on specified criteria,
+        such as large transactions.
+        Args:
+            data_batch: A list of transaction data items to be filtered.
+            criteria: An optional string specifying the filter criteria (e.g.,
+                    "large" to filter for transactions with values >= 100).
+        Returns:
+            A list of transaction data items that meet the filter criteria.
+        """
+
         filtered = []
         if criteria == "large":
             for item in data_batch:
@@ -142,6 +256,12 @@ class TransactionStream(DataStream):
         return super().filter_data(data_batch, criteria)
 
     def get_stats(self) -> Dict[str, Union[str, int, float]]:
+        """Extend base stats with transaction-specific metrics, such
+        as net flow.
+        Returns:
+            A dictionary containing base statistics along with
+            transaction-specific metrics.
+        """
 
         stats = super().get_stats()
         stats["net_flow"] = self.net_flow
@@ -149,12 +269,31 @@ class TransactionStream(DataStream):
 
 
 class EventStream(DataStream):
-
+    """Concrete implementation of DataStream for processing system event data.
+    This stream type focuses on analyzing event logs
+    and counting occurrences of error events.
+    """
     def __init__(self, stream_id: str) -> None:
+        """Initialize the event stream with a unique ID and set type to
+        'System Events'.
+        Args:
+            stream_id: A unique identifier for the event data stream.
+        """
+
         super().__init__(stream_id, "System Events")
-        self.total_errors = 0
+        self.total_errors: int = 0
 
     def process_batch(self, data_batch: List[Any]) -> str:
+        """Process a batch of event data, counting occurrences of error events.
+        Args:
+            data_batch: A list of event data items, expected to contain event
+                        descriptions, with error events containing the word
+                        "error".
+        Returns:
+            A string summarizing the total number of events processed and the
+            count of error events detected.
+        """
+
         error_count = 0
 
         for item in data_batch:
@@ -170,19 +309,52 @@ class EventStream(DataStream):
                 f"{msg_error}")
 
     def get_stats(self) -> Dict[str, Union[str, int, float]]:
+        """Extend base stats with event-specific metrics, such as
+        total error count.
+        Returns:
+            A dictionary containing base statistics along with event-specific
+            metrics.
+        """
+
         stats = super().get_stats()
         stats["total_errors"] = self.total_errors
         return stats
 
 
 class StreamProcessor():
+    """Class to manage and process multiple data streams through
+    a unified interface.
+    Attributes:
+        streams: A dictionary mapping stream IDs to their corresponding
+        DataStream instances.
+    """
     def __init__(self) -> None:
-        self.streams = {}
+        """Initialize the StreamProcessor with an empty dictionary
+        of streams."""
+
+        self.streams: Dict[str, DataStream] = {}
 
     def add_stream(self, stream: DataStream) -> None:
+        """Add a new data stream to the processor.
+        Args:
+            stream: An instance of a DataStream subclass to be added to the
+                    processor.
+        """
         self.streams[stream.stream_id] = stream
 
     def process_stream(self, stream_id: str, data_batch: List[Any]) -> str:
+        """Process a batch of data through the specified stream.
+        Args:
+            stream_id: The unique identifier of the stream to process the data
+                        through.
+            data_batch: A list of data items to be processed by the specified
+                        stream.
+            Returns:
+                A string summarizing the results of processing the batch
+                through the specified stream, or an error message
+                if the stream is not found or processing fails.
+        """
+
         if stream_id in self.streams:
             try:
                 stream = self.streams[stream_id]

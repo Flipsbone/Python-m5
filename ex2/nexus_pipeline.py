@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+CODE NEXUS: Enterprise Pipeline System
+This module implements a robust and extensible data processing pipeline"""
 
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Union, Optional, Protocol
@@ -18,8 +21,16 @@ class ProcessingStage(Protocol):
 class InputStage:
     """
     Stage 1: Simulates input validation and parsing.
+        - Handles various input formats (JSON, CSV, raw strings).
     """
     def process(self, data: DataType) -> DataType:
+        """Simulate input validation and parsing.
+        Args:
+            data: The raw input data to be processed.
+        Returns:
+            The validated and parsed data, ready for transformation.
+        """
+
         if isinstance(data, str) and "," in data:
             print(f'Input: "{data}"')
         else:
@@ -31,9 +42,15 @@ class InputStage:
 
 class TransformStage:
     """
-    Stage 2: Simulates data transformation and enrichment.
+    Stage 2: Simulates data transformation.
     """
     def process(self, data: DataType) -> DataType:
+        """Simulate data transformation.
+        Args:
+            data: The validated input data to be transformed.
+        Returns:
+            The transformed data, ready for output formatting.
+        """
         if isinstance(data, Dict):
             print("Transform: Enriched with metadata and validation")
         elif isinstance(data, str):
@@ -51,6 +68,13 @@ class OutputStage:
     Stage 3: Simulates output formatting and delivery.
     """
     def process(self, data: DataType) -> DataType:
+        """Simulate output formatting and delivery.
+        Args:
+            data: The transformed data to be formatted and delivered.
+        Returns:
+            The final output data, ready for storage or display.
+        """
+
         if isinstance(data, dict):
             print(f"Output: Processed temperature reading: {data['value']}°C "
                   "(Normal range)")
@@ -97,11 +121,25 @@ class ProcessingPipeline(ABC):
 
 
 class JSONAdapter(ProcessingPipeline):
+    """JSONAdapter processes JSON data through the pipeline stages."""
+
     def __init__(self, pipeline_id: str) -> None:
+        """Initialize the JSONAdapter with a unique pipeline identifier.
+        Args:
+            pipeline_id: A string identifier for the pipeline instance.
+        """
         super().__init__()
         self.pipeline_id: str = pipeline_id
 
     def process(self, data: Any) -> Optional[DataType]:
+        """Process JSON data through the pipeline stages.
+        Args:
+            data: The input data to be processed, expected to be a dictionary
+            representing JSON data.
+            Returns:
+            The final processed data after passing through all stages, or None
+            if an error occurs during processing.
+        """
         print("Processing JSON data through pipeline...")
         current_data: DataType = data
 
@@ -121,11 +159,25 @@ class JSONAdapter(ProcessingPipeline):
 
 
 class CSVAdapter(ProcessingPipeline):
+    """CSVAdapter processes CSV data through the same pipeline stages."""
     def __init__(self, pipeline_id: str) -> None:
+        """Initialize the CSVAdapter with a unique pipeline identifier.
+        Args:
+            pipeline_id: A string identifier for the pipeline instance.
+        """
+
         super().__init__()
         self.pipeline_id: str = pipeline_id
 
     def process(self, data: Any) -> Optional[DataType]:
+        """Process CSV data through the same pipeline stages.
+        Args:
+            data: The input data to be processed, expected to be a string
+            representing CSV data.
+            Returns:
+            The final processed data after passing through all stages, or None
+            if an error occurs during processing.
+        """
         print("Processing CSV data through same pipeline..")
         current_data: DataType = data
 
@@ -145,11 +197,27 @@ class CSVAdapter(ProcessingPipeline):
 
 
 class StreamAdapter(ProcessingPipeline):
+    """StreamAdapter processes real-time stream data through the same
+        pipeline stages."""
     def __init__(self, pipeline_id: str) -> None:
+        """Initialize the StreamAdapter with a unique pipeline identifier.
+        Args:
+            pipeline_id: A string identifier for the pipeline instance.
+        """
+
         super().__init__()
         self.pipeline_id: str = pipeline_id
 
     def process(self, data: Any) -> Optional[DataType]:
+        """Process real-time stream data through the same pipeline stages.
+        Args:
+            data: The input data to be processed, expected to be a string
+            representing real-time stream data.
+            Returns:
+            The final processed data after passing through all stages, or None
+            if an error occurs during processing.
+        """
+
         print("Processing Stream data through same pipeline...")
         current_data: DataType = data
 
@@ -169,16 +237,39 @@ class StreamAdapter(ProcessingPipeline):
 
 
 class NexusManager:
+    """NexusManager orchestrates multiple processing
+    pipelines and manages data flow
+    between them, enabling complex processing chains and error handling."""
+
     def __init__(self) -> None:
+        """Initialize the NexusManager with an empty registry of pipelines.
+        args:
+            self: The NexusManager instance being initialized.
+        """
         self.pipelines: Dict[str, ProcessingPipeline] = {}
 
     def register_pipeline(
             self, name: str, pipeline: ProcessingPipeline) -> None:
+        """Register a processing pipeline with a unique name.
+        Args:
+            name: A string identifier for the pipeline.
+            pipeline: An instance of a class that implements the
+            ProcessingPipeline interface.
+        """
         self.pipelines[name] = pipeline
 
     def process(
             self, pipeline_name: str,
             data: DataType) -> Optional[DataType]:
+        """Process data through a specified pipeline.
+        Args:
+            pipeline_name: The name of the registered pipeline to use for
+            processing.
+            data: The input data to be processed through the pipeline.
+        Returns:
+            The processed result from the pipeline, or None if the pipeline is
+            not found or an error occurs during processing.
+        """
 
         pipeline = self.pipelines.get(pipeline_name)
         if pipeline:
@@ -194,6 +285,17 @@ class NexusManager:
     def process_chain(
             self, pipeline_names: List[str],
             data: DataType) -> Optional[DataType]:
+        """Process data through a chain of specified pipelines in sequence.
+        Args:
+            pipeline_names: A list of pipeline names to process
+            the data through in order.
+            data: The input data to be processed through the chain
+            of pipelines.
+        Returns:
+            The final processed result after passing through all pipelines, or
+            None if any pipeline is not found or an error occurs during
+            processing.
+        """
 
         result: Optional[DataType] = data
         for name in pipeline_names:
@@ -203,20 +305,40 @@ class NexusManager:
 
 
 class PipelineError(Exception):
+    """Custom exception for pipeline processing errors."""
     pass
 
 
 class FaultyStage:
+    """Simulates a processing stage that raises an error to test
+    error handling."""
     def process(self, data: DataType) -> DataType:
+        """Simulate a processing stage that raises an error.
+        Args:
+            data: The input data to be processed, which will trigger an error.
+            Returns:
+            This method does not return a value as it always raises an error.
+        """
         raise PipelineError("Invalid data format")
 
 
 class BackupStage:
+    """Simulates a backup processing stage used for error recovery."""
     def process(self, data: DataType) -> DataType:
+        """Simulate a backup processing stage for error recovery.
+        Args:
+            data: The input data to be processed by the backup stage.
+            Returns:
+            The processed data after recovery, which in this simulation is the
+            same as the input data.
+        """
         return data
 
 
 def pipeline_error() -> None:
+    """Simulates a pipeline failure and demonstrates error
+    detection and recovery."""
+
     print("Simulating pipeline failure...")
     stages: List[ProcessingStage] = [
         InputStage(), FaultyStage(), OutputStage()]
@@ -233,6 +355,8 @@ def pipeline_error() -> None:
 
 
 def multi_format() -> None:
+    """Demonstrates processing of multiple data formats through
+    chained pipelines."""
 
     nexus_abc: NexusManager = NexusManager()
     pa: JSONAdapter = JSONAdapter("Pipeline A")
