@@ -3,13 +3,15 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Union, Optional, Protocol
 
+DataType = Union[Dict[str, Any], str]
+
 
 class ProcessingStage(Protocol):
     """
     Protocol defining the interface for processing stages.
     Any class implementing process(data) -> Any satisfies this protocol.
     """
-    def process(self, data: Any) -> Any:
+    def process(self, data: DataType) -> DataType:
         ...
 
 
@@ -17,7 +19,7 @@ class InputStage:
     """
     Stage 1: Simulates input validation and parsing.
     """
-    def process(self, data: Any) -> Any:
+    def process(self, data: DataType) -> DataType:
         if isinstance(data, str) and "," in data:
             print(f'Input: "{data}"')
         else:
@@ -31,7 +33,7 @@ class TransformStage:
     """
     Stage 2: Simulates data transformation and enrichment.
     """
-    def process(self, data: Any) -> Any:
+    def process(self, data: DataType) -> DataType:
         if isinstance(data, Dict):
             print("Transform: Enriched with metadata and validation")
         elif isinstance(data, str):
@@ -46,7 +48,7 @@ class OutputStage:
     """
     Stage 3: Simulates output formatting and delivery.
     """
-    def process(self, data: Any) -> Any:
+    def process(self, data: DataType) -> DataType:
         if isinstance(data, dict):
             print(f"Output: Processed temperature reading: {data['value']}°C "
                   "(Normal range)")
@@ -63,9 +65,9 @@ class ProcessingPipeline(ABC):
     Abstract base class managing stages and orchestrating data flow.
     """
     def __init__(self):
-        self.stages: List[Any] = []
+        self.stages: List[ProcessingStage] = []
 
-    def add_stage(self, stage: Any) -> None:
+    def add_stage(self, stage: DataType) -> None:
         """
         Adds a processing stage to the pipeline.
 
@@ -76,7 +78,7 @@ class ProcessingPipeline(ABC):
         self.stages.append(stage)
 
     @abstractmethod
-    def process(self, data: Any) -> Any:
+    def process(self, data: Any) -> Optional[DataType]:
         """
         Abstract method to process data through the pipeline.
         Must be overridden by specific adapter implementations.
@@ -95,7 +97,7 @@ class JSONAdapter(ProcessingPipeline):
         super().__init__()
         self.pipeline_id = pipeline_id
 
-    def process(self, data: Any) -> Any:
+    def process(self, data: Any) -> Optional[DataType]:
         print("Processing JSON data through pipeline...")
         for stage in self.stages:
             try:
@@ -111,7 +113,7 @@ class CSVAdapter(ProcessingPipeline):
         super().__init__()
         self.pipeline_id = pipeline_id
 
-    def process(self, data: Any) -> Any:
+    def process(self, data: Any) -> Optional[DataType]:
         print("Processing CSV data through same pipeline..")
         for stage in self.stages:
             try:
@@ -127,7 +129,7 @@ class StreamAdapter(ProcessingPipeline):
         super().__init__()
         self.pipeline_id = pipeline_id
 
-    def process(self, data: Any) -> Any:
+    def process(self, data: Any) -> Optional[DataType]:
         print("Processing Stream data through same pipeline...")
         for stage in self.stages:
             try:
@@ -146,7 +148,7 @@ class NexusManager:
             self, name: str, pipeline: ProcessingPipeline) -> None:
         self.pipelines[name] = pipeline
 
-    def process(self, pipeline_name: str, data: Any) -> Any:
+    def process(self, pipeline_name: str, data: Any) -> Optional[DataType]:
         pipeline = self.pipelines.get(pipeline_name)
         if pipeline:
             try:
