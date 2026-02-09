@@ -16,7 +16,7 @@ from typing import Any, List, Dict, Union, Optional
 
 
 class DataProcessor(ABC):
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     @abstractmethod
@@ -50,15 +50,16 @@ class DataProcessor(ABC):
 
 
 class NumericProcessor(DataProcessor):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     def process(self, data: Any) -> str:
-        if isinstance(data, (int, float)):
-            data = [data]
-        nb_total = len(data)
+        work_data = data if isinstance(data, List) else [data]
+
+        nb_total = len(work_data)
         if nb_total == 0:
             raise ValueError("Cannot calculate average: data list is empty")
+
         sum_total = sum(data)
         avg = sum_total / nb_total
 
@@ -81,7 +82,7 @@ class NumericProcessor(DataProcessor):
 
 
 class TextProcessor(DataProcessor):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     def process(self, data: Any) -> str:
@@ -95,7 +96,7 @@ class TextProcessor(DataProcessor):
 
 
 class LogProcessor(DataProcessor):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     def process(self, data: Any) -> str:
@@ -115,7 +116,7 @@ def polymorphic_demo() -> None:
 
     print("=== Polymorphic Processing Demo ===")
     print("Processing multiple data types through same interface...")
-    mixed_stream = [
+    mixed_stream = List[tuple[DataProcessor, Any]] = [
         (NumericProcessor(), [1, 2, 3]),
         (TextProcessor(), "Hello World!"),
         (LogProcessor(), "INFO: System ready")
@@ -141,7 +142,7 @@ def data_processor_foundation() -> None:
         TextProcessor(),
         LogProcessor(),
     ]
-    data_sample = [
+    data_sample: List[Any] = [
         [1, 2, 3, 4, 5],
         "Hello Nexus World",
         "ERROR: Connection timeout"
