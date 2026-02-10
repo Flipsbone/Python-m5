@@ -5,8 +5,9 @@ CODE NEXUS: Data Processor Foundation
 This module implements the foundational architecture for a polymorphic data
 processing system.
 It defines an Abstract Base Class (ABC) `DataProcessor` that enforces a strict
-interface for validation and processing. Concrete implementations
-(Numeric, Text, Log)demonstrate method overriding and subtype polymorphism,
+interface for validation and processing.
+Implementations(Numeric, Text, Log)demonstrate method overriding
+and subtype polymorphism,
 """
 
 from abc import ABC, abstractmethod
@@ -14,8 +15,10 @@ from typing import Any, List, Dict, Union, Optional
 
 
 class DataProcessor(ABC):
+    """Abstract base class defining the interface for data processors."""
     def __init__(self) -> None:
-        pass
+        '''Initialize the DataProcessor base class.'''
+        super().__init__()
 
     @abstractmethod
     def process(self, data: Any) -> str:
@@ -50,10 +53,18 @@ class DataProcessor(ABC):
 
 
 class NumericProcessor(DataProcessor):
+    '''Concrete implementation of DataProcessor for numeric data.'''
     def __init__(self) -> None:
+        '''Initialize the NumericProcessor.'''
         super().__init__()
 
     def process(self, data: Any) -> str:
+        '''Process numeric data to calculate sum and average.
+        Args:
+            data: A single number or a list of numbers to be processed.
+        Returns:
+            A formatted string with the count, sum, and average of the numbers.
+        '''
         work_data = data if isinstance(data, List) else [data]
 
         nb_total = len(work_data)
@@ -74,32 +85,85 @@ class NumericProcessor(DataProcessor):
                 f"avg={stats['avg']:.1f}")
 
     def validate(self, data: Any) -> bool:
+        '''Validate that the input data is either a number or a list of
+        numbers.
+        Args:
+            data: The input data to be validated.
+        Returns:
+            True if the data is valid for numeric processing, False otherwise.
+        '''
         if isinstance(data, (int, float)):
             return True
 
         return isinstance(data, list) and all(
             isinstance(nb, (int, float)) for nb in data)
 
+    def format_output(self, result: str) -> str:
+        '''Override the base class method to add a prefix for numeric results.
+        Args:
+            result: The raw result string from the process method.
+        Returns:
+            A formatted string with a "Numeric Result: " prefix.
+        '''
+        base_formatted = super().format_output(result)
+        return f"Numeric Result: {base_formatted}"
+
 
 class TextProcessor(DataProcessor):
+    '''Concrete implementation of DataProcessor for text data.'''
     def __init__(self) -> None:
+        '''Initialize the TextProcessor.'''
         super().__init__()
 
     def process(self, data: Any) -> str:
+        '''Process text data to count characters and words.
+        Args:
+            data: A string of text to be processed.
+        Returns:
+            A formatted string with the count of characters and words in
+            the text.
+        '''
         nb_characters = len(data)
         nb_words = len(data.split())
         return (f"processed text: {nb_characters} characters, "
                 f"{nb_words} words")
 
     def validate(self, data: Any) -> bool:
+        '''Validate that the input data is a string.
+        Args:
+            data: The input data to be validated.
+        Returns:
+            True if the data is a string, False otherwise.
+        '''
         return isinstance(data, str)
+
+    def format_output(self, result: str) -> str:
+        '''Override the base class method to add a prefix for text results.
+        Args:
+            result: The raw result string from the process method.
+        Returns:
+            A formatted string with a "Text Result: " prefix.
+        '''
+        base_formatted = super().format_output(result)
+        return f"{base_formatted}"
 
 
 class LogProcessor(DataProcessor):
+    '''Concrete implementation of DataProcessor for log entries.'''
+
     def __init__(self) -> None:
+        '''Initialize the LogProcessor.'''
         super().__init__()
 
     def process(self, data: Any) -> str:
+        '''Process log data to extract log level and message.
+        Args:
+            data: A string representing a log entry, expected to contain a
+            log level and message separated by a colon.
+        Returns:
+            A formatted string indicating the log level and message content.
+        '''
+
         words = data.split(":", 1)
         level = words[0].strip()
         if len(words) <= 1 or not words[1].strip():
@@ -111,7 +175,24 @@ class LogProcessor(DataProcessor):
         return f"[{tag}] {level} level detected: {message}"
 
     def validate(self, data: Any) -> bool:
+        '''Validate that the input data is a string containing a log level and
+        message separated by a colon.
+        Args:
+            data: The input data to be validated.
+        Returns:
+            True if the data is a valid log entry, False otherwise.
+        '''
         return isinstance(data, str) and ":" in data
+
+    def format_output(self, result: str) -> str:
+        '''Override the base class method to add a prefix for log results.
+        Args:
+            result: The raw result string from the process method.
+        Returns:
+            A formatted string with a "Log Result: " prefix.
+        '''
+        base_formatted = super().format_output(result)
+        return f"{base_formatted}"
 
 
 def polymorphic_demo() -> None:
@@ -132,7 +213,7 @@ def polymorphic_demo() -> None:
                 result = proc.format_output(proc.process(data))
             print(f"Result {index}: {result}")
         except Exception as e:
-            print(f"Result {index}: System Error - {e}")
+            print(f"Result {index}: System Error {e}")
     print("\nFoundation systems online. Nexus ready for advanced streams.")
 
 
