@@ -12,19 +12,19 @@ class DataStream(ABC):
     """Abstract base class for different types of data streams.
     Attributes:
         stream_id: A unique identifier for the data stream.
-        type: A string representing the type of data stream
+        stream_type: A string representing the type of data stream
                 (e.g., "Sensor", "Transaction", "Event").
     """
 
-    def __init__(self, stream_id: str, type: str) -> None:
+    def __init__(self, stream_id: str, stream_type: str) -> None:
         """Initialize the data stream with an ID and type.
         Args:
             stream_id: A unique identifier for the data stream.
-            type: A string representing the type of data stream
+            strean_type: A string representing the type of data stream
                     (e.g., "Sensor", "Transaction", "Event").
         """
         self.stream_id: str = stream_id
-        self.type: str = type
+        self.stream_type: str = stream_type
 
     @abstractmethod
     def process_batch(self, data_batch: List[Any]) -> str:
@@ -46,19 +46,21 @@ class DataStream(ABC):
         Returns:
             A list of data items that meet the filter criteria.
         """
+        if not criteria:
+            return data_batch
 
         return data_batch
 
     def get_stats(self) -> Dict[str, Union[str, int, float]]:
         """Retrieve statistics about the data stream.
         Returns:
-            A dictionary containing statistics such as stream ID, type, and
-            other relevant metrics.
+            A dictionary containing statistics such as stream ID, stream type
+            , and other relevant metrics.
         """
 
         return {
             "stream_id": self.stream_id,
-            "type": self.type
+            "stream_type": self.stream_type
             }
 
     def parse_line(self, item: Any) -> Optional[tuple[str, str]]:
@@ -71,10 +73,11 @@ class DataStream(ABC):
             item cannot be parsed.
         """
 
-        if not isinstance(item, str) and ":" in item:
+        if isinstance(item, str) and ":" in item:
+            key, value = item.split(":", 1)
+            return key.strip().lower(), value.strip()
+        else:
             return None
-        key, value = item.split(":", 1)
-        return key.strip().lower(), value.strip()
 
 
 class SensorStream(DataStream):
@@ -92,6 +95,9 @@ class SensorStream(DataStream):
 
         super().__init__(stream_id, "Environmental Data")
         self.last_avg = 0.0
+
+    def is_critical(self, value: float) -> bool:
+        return value > 50 or value < 0
 
     def process_batch(self, data_batch: List[Any]) -> str:
         """Process a batch of sensor data, calculating average temperature and
@@ -122,7 +128,7 @@ class SensorStream(DataStream):
         avg = sum(temperatures) / len(temperatures)
         self.last_avg = avg
 
-        alerts = [temp for temp in temperatures if temp > 50 or temp < 0]
+        alerts = [temp for temp in temperatures if self.is_critical(temp)]
         status_msg = ""
         if alerts:
             status_msg = f", ALERT ({len(alerts)} extreme values)"
@@ -143,14 +149,14 @@ class SensorStream(DataStream):
             A list of sensor data items that meet the filter criteria.
         """
 
-        filtered = []
+        filtered: List[float] = []
         if criteria == "critical":
             for item in data_batch:
                 parsed = self.parse_line(item)
                 if parsed:
                     try:
                         val = float(parsed[1])
-                        if val > 50 or val < 0:
+                        if self.is_critical(val):
                             filtered.append(item)
                     except ValueError:
                         continue
@@ -348,10 +354,9 @@ class StreamProcessor():
                 through the specified stream, or an error message
                 if the stream is not found or processing fails.
         """
-
-        if stream_id in self.streams:
+        stream = self.streams.get(stream_id)
+        if stream:
             try:
-                stream = self.streams[stream_id]
                 return stream.process_batch(data_batch)
             except Exception as e:
                 return (f"Error: Failed to process stream {stream_id}. "
@@ -369,7 +374,7 @@ def main() -> None:
 
     sensor = SensorStream("SENSOR_001")
     processor.add_stream(sensor)
-    print(f"Stream ID: {sensor.stream_id}, Type: {sensor.type}")
+    print(f"Stream ID: {sensor.stream_id}, Type: {sensor.stream_type}")
     sensor_data = ["temp:22.5", "humidity:65", "pressure:1013"]
     clean_sensor = str(sensor_data).replace("'", "")
     print(f"Processing sensor batch: {clean_sensor}")
@@ -379,7 +384,8 @@ def main() -> None:
 
     transaction = TransactionStream("TRANS_001")
     processor.add_stream(transaction)
-    print(f"Stream ID: {transaction.stream_id}, Type: {transaction.type}")
+    print(f"Stream ID: {transaction.stream_id}, "
+          f"Type: {transaction.stream_type}")
     trans_data = ["buy:100", "sell:150", "buy:75"]
     clean_trans = str(trans_data).replace("'", "")
     print(f"Processing transaction batch: {clean_trans}")
@@ -389,7 +395,7 @@ def main() -> None:
 
     event = EventStream("EVENT_001")
     processor.add_stream(event)
-    print(f"Stream ID: {event.stream_id}, Type: {event.type}")
+    print(f"Stream ID: {event.stream_id}, Type: {event.stream_type}")
     event_data = ["login", "error", "logout"]
     clean_event = str(event_data).replace("'", "")
     print(f"Processing event batch: {clean_event}")
@@ -404,17 +410,27 @@ def main() -> None:
     poly_event_data = ["login", "user", "logout"]
 
     res1 = processor.process_stream("SENSOR_001", poly_sensor_data)
-    clean_res1 = res1.split(",")[0].replace("Sensor analysis", "Sensor data")
-    print(f"- {clean_res1}")
+    if "Sensor analysis" in res1:
+        clean_res1 = res1.split(",")[0].replace("Sensor analysis",
+                                                "Sensor data")
+        print(f"- {clean_res1}")
+    else:
+        print(f"- {res1}")
 
     res2 = processor.process_stream("TRANS_001", poly_trans_data)
-    clean_res2 = res2.split(",")[0].replace(
-        "Transaction analysis", "Transaction data")
-    print(f"- {clean_res2} processed")
+    if "Event analysis" in res2:
+        clean_res2 = res2.split(",")[0].replace(
+            "Transaction analysis", "Transaction data")
+        print(f"- {clean_res2} processed")
+    else:
+        print(f"- {res2}")
 
     res3 = processor.process_stream("EVENT_001", poly_event_data)
-    clean_res3 = res3.split(",")[0].replace("Event analysis", "Event data")
-    print(f"- {clean_res3} processed")
+    if "Event analysis" in res3:
+        clean_res3 = res3.split(",")[0].replace("Event analysis", "Event data")
+        print(f"- {clean_res3} processed")
+    else:
+        print(f"- {res3}")
 
     print("\nStream filtering active: High-priority data only")
 
