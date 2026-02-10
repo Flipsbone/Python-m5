@@ -152,7 +152,7 @@ class JSONAdapter(ProcessingPipeline):
             try:
                 current_data = stage.process(current_data)
             except Exception as e:
-                print(f"{__class__.__name__} "
+                print(f"{type(self).__name__} "
                       f"{e.__class__.__name__} error as {e}")
                 return None
         return current_data
@@ -190,7 +190,7 @@ class CSVAdapter(ProcessingPipeline):
             try:
                 current_data = stage.process(current_data)
             except Exception as e:
-                print(f"{__class__.__name__} "
+                print(f"{type(self).__name__} "
                       f"{e.__class__.__name__} error as {e}")
                 return None
         return current_data
@@ -230,7 +230,7 @@ class StreamAdapter(ProcessingPipeline):
             try:
                 current_data = stage.process(current_data)
             except Exception as e:
-                print(f"{__class__.__name__} "
+                print(f"{type(self).__name__} "
                       f"{e.__class__.__name__} error as {e}")
                 return None
         return current_data
@@ -385,7 +385,7 @@ def main() -> None:
     print("initializing Nexus Manager...")
     nexus: NexusManager = NexusManager()
     print("Pipeline capacity: 1000 streams/second\n")
-    pipelines = []
+    pipelines: List[ProcessingPipeline] = []
     pipeline1: JSONAdapter = JSONAdapter("json_01")
     pipelines.append(pipeline1)
     pipeline2: CSVAdapter = CSVAdapter("csv_01")
