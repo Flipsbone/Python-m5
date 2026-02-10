@@ -114,7 +114,7 @@ def polymorphic_demo() -> None:
 
     print("=== Polymorphic Processing Demo ===")
     print("Processing multiple data types through same interface...")
-    mixed_stream = List[tuple[DataProcessor, Any]] = [
+    mixed_stream: List[tuple[DataProcessor, Any]] = [
         (NumericProcessor(), [1, 2, 3]),
         (TextProcessor(), "Hello World!"),
         (LogProcessor(), "INFO: System ready")

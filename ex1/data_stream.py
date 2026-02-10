@@ -377,7 +377,8 @@ def main() -> None:
     processor.add_stream(sensor)
     print(f"Stream ID: {sensor.stream_id}, Type: {sensor.type}")
     sensor_data = ["temp:22.5", "humidity:65", "pressure:1013"]
-    print(f"Processing sensor batch: {str(sensor_data).replace("'", "")}")
+    clean_sensor = str(sensor_data).replace("'", "")
+    print(f"Processing sensor batch: {clean_sensor}")
     print(processor.process_stream("SENSOR_001", sensor_data))
 
     print("\nInitializing Transaction Stream...")
@@ -386,7 +387,8 @@ def main() -> None:
     processor.add_stream(transaction)
     print(f"Stream ID: {transaction.stream_id}, Type: {transaction.type}")
     trans_data = ["buy:100", "sell:150", "buy:75"]
-    print(f"Processing transaction batch: {str(trans_data).replace("'", "")}")
+    clean_trans = str(trans_data).replace("'", "")
+    print(f"Processing transaction batch: {clean_trans}")
     print(processor.process_stream("TRANS_001", trans_data))
 
     print("\nInitializing Event Stream...")
@@ -395,7 +397,8 @@ def main() -> None:
     processor.add_stream(event)
     print(f"Stream ID: {event.stream_id}, Type: {event.type}")
     event_data = ["login", "error", "logout"]
-    print(f"Processing event batch: {str(event_data).replace("'", "")}")
+    clean_event = str(event_data).replace("'", "")
+    print(f"Processing event batch: {clean_event}")
     print(processor.process_stream("EVENT_001", event_data))
 
     print("\n=== Polymorphic Stream Processing ===")
