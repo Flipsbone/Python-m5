@@ -10,8 +10,6 @@ from typing import Any, List, Dict, Union, Optional
 
 class DataStream(ABC):
     """Abstract base class for different types of data streams.
-    Enforces a common interface for processing, filtering, and stats retrieval,
-    while allowing for specialized behavior in concrete stream types.
     Attributes:
         stream_id: A unique identifier for the data stream.
         type: A string representing the type of data stream
@@ -73,18 +71,14 @@ class DataStream(ABC):
             item cannot be parsed.
         """
 
-        try:
-            if isinstance(item, str) and ":" in item:
-                parts = item.split(":", 1)
-                if len(parts) == 2:
-                    return parts[0].strip().lower(), parts[1].strip()
-        except Exception:
-            pass
-        return None
+        if not isinstance(item, str) and ":" in item:
+            return None
+        key, value = item.split(":", 1)
+        return key.strip().lower(), value.strip()
 
 
 class SensorStream(DataStream):
-    """Concrete implementation of DataStream for processing sensor data.
+    """
     This stream type focuses on analyzing temperature readings and generating
     alerts for extreme values.
     """
@@ -177,9 +171,9 @@ class SensorStream(DataStream):
 
 
 class TransactionStream(DataStream):
-    """Concrete implementation of DataStream for processing
-    financial transaction data. This stream type focuses on analyzing
-    buy/sell transactions and calculating net flow.
+    """DataStream for processing financial transaction data.
+    This stream type focuses on analyzing buy/sell transactions
+    and calculating net flow.
     """
     def __init__(self, stream_id: str) -> None:
         """Initialize the transaction stream with a unique ID and set type to

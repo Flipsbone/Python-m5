@@ -44,7 +44,9 @@ class DataProcessor(ABC):
         Returns:
             A formatted string ready for display or further use.
         '''
-        return result
+        if not result:
+            return ""
+        return result[0].upper() + result[1:]
 
 
 class NumericProcessor(DataProcessor):
@@ -58,7 +60,7 @@ class NumericProcessor(DataProcessor):
         if nb_total == 0:
             raise ValueError("Cannot calculate average: data list is empty")
 
-        sum_total = sum(data)
+        sum_total = sum(work_data)
         avg = sum_total / nb_total
 
         stats: Dict[str, Union[int, float]] = {
@@ -67,7 +69,7 @@ class NumericProcessor(DataProcessor):
             "count": nb_total
         }
 
-        return (f"Processed {stats['count']} numeric values, "
+        return (f"processed {stats['count']} numeric values, "
                 f"sum={stats['sum']}, "
                 f"avg={stats['avg']:.1f}")
 
@@ -86,7 +88,7 @@ class TextProcessor(DataProcessor):
     def process(self, data: Any) -> str:
         nb_characters = len(data)
         nb_words = len(data.split())
-        return (f"Processed text: {nb_characters} characters, "
+        return (f"processed text: {nb_characters} characters, "
                 f"{nb_words} words")
 
     def validate(self, data: Any) -> bool:
@@ -100,7 +102,11 @@ class LogProcessor(DataProcessor):
     def process(self, data: Any) -> str:
         words = data.split(":", 1)
         level = words[0].strip()
-        message = words[1].strip()
+        if len(words) <= 1 or not words[1].strip():
+            message = "No message content"
+        else:
+            message = words[1].strip()
+
         tag = "ALERT" if level == "ERROR" else level
         return f"[{tag}] {level} level detected: {message}"
 
@@ -123,7 +129,7 @@ def polymorphic_demo() -> None:
         result: Optional[str] = None
         try:
             if proc.validate(data):
-                result = proc.process(data)
+                result = proc.format_output(proc.process(data))
             print(f"Result {index}: {result}")
         except Exception as e:
             print(f"Result {index}: System Error - {e}")
@@ -135,31 +141,25 @@ def data_processor_foundation() -> None:
     data types'''
 
     print("=== CODE NEXUS - DATA PROCESSOR FOUNDATION ===\n")
-    processors: List[DataProcessor] = [
-        NumericProcessor(),
-        TextProcessor(),
-        LogProcessor(),
+    tasks = [
+        (NumericProcessor(), [1, 2, 3, 4, 5]),
+        (TextProcessor(),    "Hello Nexus World"),
+        (LogProcessor(),     "ERROR: Connection timeout")
     ]
-    data_sample: List[Any] = [
-        [1, 2, 3, 4, 5],
-        "Hello Nexus World",
-        "ERROR: Connection timeout"
-    ]
-    for proc, data in zip(processors, data_sample):
-        print(f"Initializing {proc.__class__.__name__}...")
+    for processor, data in tasks:
+        print(f"Initializing {processor.__class__.__name__}...")
         print(f"Processing data: {repr(data)}")
         try:
-            if not proc.validate(data):
+            if not processor.validate(data):
                 raise ValueError("Invalid data format for this processor")
-            type_name = proc.__class__.__name__.replace("Processor", "")
+
+            type_name = processor.__class__.__name__.replace("Processor", "")
             suffix = "entry" if type_name == "Log" else "data"
             print(f"Validation: {type_name} {suffix} verified")
 
-            result = proc.process(data)
-            formatted = proc.format_output(result)
-
-            print(f"Output: {formatted}\n")
-
+            result = processor.process(data)
+            result = processor.format_output(result)
+            print(f"Output: {result}\n")
         except ValueError as e:
             print(f"Error: {e}\n")
         except Exception as e:
