@@ -7,8 +7,6 @@ processing system.
 It defines an Abstract Base Class (ABC) `DataProcessor` that enforces a strict
 interface for validation and processing. Concrete implementations
 (Numeric, Text, Log)demonstrate method overriding and subtype polymorphism,
-allowing heterogeneous data streams to be handled through a unified API with
-comprehensive type safety.
 """
 
 from abc import ABC, abstractmethod

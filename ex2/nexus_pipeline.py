@@ -14,7 +14,7 @@ class ProcessingStage(Protocol):
     Protocol defining the interface for processing stages.
     Any class implementing process(data) -> Any satisfies this protocol.
     """
-    def process(self, data: DataType) -> DataType:
+    def process(self, data: Any) -> Any:
         ...
 
 
@@ -23,7 +23,7 @@ class InputStage:
     Stage 1: Simulates input validation and parsing.
         - Handles various input formats (JSON, CSV, raw strings).
     """
-    def process(self, data: DataType) -> DataType:
+    def process(self, data: Any) -> Any:
         """Simulate input validation and parsing.
         Args:
             data: The raw input data to be processed.
@@ -44,7 +44,7 @@ class TransformStage:
     """
     Stage 2: Simulates data transformation.
     """
-    def process(self, data: DataType) -> DataType:
+    def process(self, data: Any) -> Any:
         """Simulate data transformation.
         Args:
             data: The validated input data to be transformed.
@@ -67,7 +67,7 @@ class OutputStage:
     """
     Stage 3: Simulates output formatting and delivery.
     """
-    def process(self, data: DataType) -> DataType:
+    def process(self, data: Any) -> Any:
         """Simulate output formatting and delivery.
         Args:
             data: The transformed data to be formatted and delivered.
@@ -95,7 +95,7 @@ class ProcessingPipeline(ABC):
     def __init__(self) -> None:
         self.stages: List[ProcessingStage] = []
 
-    def add_stage(self, stage: DataType) -> None:
+    def add_stage(self, stage: ProcessingStage) -> None:
         """
         Adds a processing stage to the pipeline.
 
@@ -106,7 +106,7 @@ class ProcessingPipeline(ABC):
         self.stages.append(stage)
 
     @abstractmethod
-    def process(self, data: DataType) -> Optional[DataType]:
+    def process(self, data: Any) -> Union[str, Any]:
         """
         Abstract method to process data through the pipeline.
         Must be overridden by specific adapter implementations.
@@ -131,7 +131,7 @@ class JSONAdapter(ProcessingPipeline):
         super().__init__()
         self.pipeline_id: str = pipeline_id
 
-    def process(self, data: Any) -> Optional[DataType]:
+    def process(self, data: Any) -> Union[str, Any]:
         """Process JSON data through the pipeline stages.
         Args:
             data: The input data to be processed, expected to be a dictionary
@@ -169,7 +169,7 @@ class CSVAdapter(ProcessingPipeline):
         super().__init__()
         self.pipeline_id: str = pipeline_id
 
-    def process(self, data: Any) -> Optional[DataType]:
+    def process(self, data: Any) -> Union[str, Any]:
         """Process CSV data through the same pipeline stages.
         Args:
             data: The input data to be processed, expected to be a string
@@ -208,7 +208,7 @@ class StreamAdapter(ProcessingPipeline):
         super().__init__()
         self.pipeline_id: str = pipeline_id
 
-    def process(self, data: Any) -> Optional[DataType]:
+    def process(self, data: Any) -> Union[str, Any]:
         """Process real-time stream data through the same pipeline stages.
         Args:
             data: The input data to be processed, expected to be a string
@@ -260,7 +260,7 @@ class NexusManager:
 
     def process(
             self, pipeline_name: str,
-            data: DataType) -> Optional[DataType]:
+            data: Any) -> Union[str, Any]:
         """Process data through a specified pipeline.
         Args:
             pipeline_name: The name of the registered pipeline to use for
