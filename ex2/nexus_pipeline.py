@@ -137,8 +137,10 @@ class OutputStage:
         else:
             message = f"Output: {str(data)}"
 
-        print(f"{message}\n")
-        return message
+        if message:
+            print(f"{message}\n")
+
+        return data
 
 
 class ProcessingPipeline(ABC):
@@ -217,11 +219,11 @@ class NexusManager:
         return {"status": "recovered", "info": "backup_active"}
 
     def process_all(self, data_input: List[Any]) -> Any:
-        result: Any = data_input
+        current_data: Any = data_input
 
         for pipeline in self.pipelines:
             try:
-                result = pipeline.process(result)
+                current_data = pipeline.process(current_data)
             except ValueError as e:
                 print(f"Error detected in Stage 2: {e}")
                 print("Recovery initiated: Switching to backup processor")
@@ -230,12 +232,12 @@ class NexusManager:
                       "processing resumed")
                 output_stage = OutputStage()
                 output_stage.process(backup_data)
-                return backup_data
+                return current_data
 
             except Exception as e:
                 print(f"Critical Error: {e}")
 
-        return result
+        return current_data
 
 
 def main() -> None:
@@ -268,7 +270,9 @@ def main() -> None:
     nexus.add_pipeline(stream_pipe)
 
     print("=== Pipeline Chaining Demo ===")
-    print("Pipeline A -> Pipeline B -> Pipeline C")
+    print("Pipeline A -> Pipeline B -> Pipeline C\n")
+    final_result = nexus.process_all("sensor: temp, value: 24.0")
+    print(f"Final Chain Output: {final_result}")
     print("Data flow: Raw -> Processed -> Analyzed -> Stored")
     print("\nChain result: 100 records processed through 3-stage pipeline")
     print("Performance: 95% efficiency, 0.2s total processing time")
