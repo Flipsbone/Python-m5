@@ -33,6 +33,8 @@ class InputStage:
 
         if isinstance(data, str) and "," in data:
             print(f'Input: "{data}"')
+        elif isinstance(data, dict):
+            print(f'Input: {str(data).replace(" ", "")}')
         else:
             print(f"Input: {data}")
         if not data:
@@ -59,7 +61,7 @@ class TransformStage:
             elif "real-time sensor stream" in data:
                 print("Transform: Aggregated and filtered")
             else:
-                print(f"Transform: Passing data... [{data}]")
+                pass
         return data
 
 
@@ -84,7 +86,7 @@ class OutputStage:
             elif "real-time sensor stream" in data:
                 print("Output: Stream summary: 5 readings, avg: 22.1°C")
             else:
-                print(f"Output: Current State -> {data}")
+                return
         return data
 
 
@@ -119,6 +121,24 @@ class ProcessingPipeline(ABC):
         """
         pass
 
+    def run_pipeline_logic(
+            self, data: Any, pipeline_id: str,
+            type_name: str) -> Union[str, Any]:
+
+        current_data: DataType = data
+
+        if isinstance(current_data, str):
+            if current_data == "":
+                current_data = pipeline_id
+
+        for stage in self.stages:
+            try:
+                current_data = stage.process(current_data)
+            except Exception as e:
+                print(f"{type(self).__name__} "
+                      f"{e.__class__.__name__} error as {e}")
+        return current_data
+
 
 class JSONAdapter(ProcessingPipeline):
     """JSONAdapter processes JSON data through the pipeline stages."""
@@ -141,21 +161,7 @@ class JSONAdapter(ProcessingPipeline):
             if an error occurs during processing.
         """
         print("Processing JSON data through pipeline...")
-        current_data: DataType = data
-
-        if isinstance(current_data, str):
-            if current_data == "":
-                current_data = self.pipeline_id
-            else:
-                current_data = f"{data} -> {self.pipeline_id}"
-        for stage in self.stages:
-            try:
-                current_data = stage.process(current_data)
-            except Exception as e:
-                print(f"{type(self).__name__} "
-                      f"{e.__class__.__name__} error as {e}")
-                return None
-        return current_data
+        return (self.run_pipeline_logic(data, self.pipeline_id, "JSON"))
 
 
 class CSVAdapter(ProcessingPipeline):
@@ -179,21 +185,7 @@ class CSVAdapter(ProcessingPipeline):
             if an error occurs during processing.
         """
         print("Processing CSV data through same pipeline..")
-        current_data: DataType = data
-
-        if isinstance(current_data, str):
-            if current_data == "":
-                current_data = self.pipeline_id
-            else:
-                current_data = f"{current_data} -> {self.pipeline_id}"
-        for stage in self.stages:
-            try:
-                current_data = stage.process(current_data)
-            except Exception as e:
-                print(f"{type(self).__name__} "
-                      f"{e.__class__.__name__} error as {e}")
-                return None
-        return current_data
+        return self.run_pipeline_logic(data, self.pipeline_id, "CSV")
 
 
 class StreamAdapter(ProcessingPipeline):
@@ -219,21 +211,7 @@ class StreamAdapter(ProcessingPipeline):
         """
 
         print("Processing Stream data through same pipeline...")
-        current_data: DataType = data
-
-        if isinstance(current_data, str):
-            if current_data == "":
-                current_data = self.pipeline_id
-            else:
-                current_data = f"{current_data} -> {self.pipeline_id}"
-        for stage in self.stages:
-            try:
-                current_data = stage.process(current_data)
-            except Exception as e:
-                print(f"{type(self).__name__} "
-                      f"{e.__class__.__name__} error as {e}")
-                return None
-        return current_data
+        return self.run_pipeline_logic(data, self.pipeline_id, "Stream")
 
 
 class NexusManager:
@@ -272,6 +250,10 @@ class NexusManager:
         """
 
         pipeline = self.pipelines.get(pipeline_name)
+        if not pipeline:
+            print(f"Pipeline {pipeline_name} not found.")
+            return None
+
         if pipeline:
             try:
                 return pipeline.process(data)
@@ -299,7 +281,7 @@ class NexusManager:
 
         result: Optional[DataType] = data
         for name in pipeline_names:
-            if result is not None:
+            if result:
                 result = self.process(name, result)
         return result
 
@@ -374,7 +356,8 @@ def multi_format() -> None:
     final_output: Optional[DataType] = nexus_abc.process_chain(
         ["A", "B", "C"], "")
 
-    print(f"\n{final_output}")
+    print(f"{final_output}", end="")
+    print("Pipeline A -> Pipeline B -> Pipeline C")
     print("Data flow: Raw -> Processed -> Analyzed -> Stored")
     print("\nChain result: 100 records processed through 3-stage pipeline")
     print("Performance: 95% efficiency, 0.2s total processing time")
@@ -418,7 +401,6 @@ def main() -> None:
 
     sample_data_realtime: DataType = "real-time sensor stream"
     nexus.process("realtime_stream", sample_data_realtime)
-    print("\nNexus Integration complete. All systems operational.")
 
     print("\n=== Pipeline Chaining Demo ===")
     multi_format()

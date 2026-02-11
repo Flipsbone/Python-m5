@@ -16,9 +16,6 @@ from typing import Any, List, Dict, Union, Optional
 
 class DataProcessor(ABC):
     """Abstract base class defining the interface for data processors."""
-    def __init__(self) -> None:
-        '''Initialize the DataProcessor base class.'''
-        super().__init__()
 
     @abstractmethod
     def process(self, data: Any) -> str:
@@ -54,9 +51,6 @@ class DataProcessor(ABC):
 
 class NumericProcessor(DataProcessor):
     '''Concrete implementation of DataProcessor for numeric data.'''
-    def __init__(self) -> None:
-        '''Initialize the NumericProcessor.'''
-        super().__init__()
 
     def process(self, data: Any) -> str:
         '''Process numeric data to calculate sum and average.
@@ -111,9 +105,6 @@ class NumericProcessor(DataProcessor):
 
 class TextProcessor(DataProcessor):
     '''Concrete implementation of DataProcessor for text data.'''
-    def __init__(self) -> None:
-        '''Initialize the TextProcessor.'''
-        super().__init__()
 
     def process(self, data: Any) -> str:
         '''Process text data to count characters and words.
@@ -150,10 +141,6 @@ class TextProcessor(DataProcessor):
 
 class LogProcessor(DataProcessor):
     '''Concrete implementation of DataProcessor for log entries.'''
-
-    def __init__(self) -> None:
-        '''Initialize the LogProcessor.'''
-        super().__init__()
 
     def process(self, data: Any) -> str:
         '''Process log data to extract log level and message.
