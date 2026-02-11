@@ -24,37 +24,45 @@ class InputStage:
     def process(self, data: Any) -> Dict:
         if isinstance(data, dict):
             return data
+
         if isinstance(data, str) and "[RECOVERED]" in data:
             return {"status": "recovered", "info": "backup_active"}
 
-        result: dict = {}
+        clean_data = str(data).strip()
 
-        clean_data = ""
-        if isinstance(data, str):
-            clean_data = data.strip()
-            clean_data = clean_data.replace('"', '')
-            clean_data = clean_data.replace("'", "")
-
-        if isinstance(data, str) and ":" in clean_data:
-            inner_data = clean_data.replace("{", "").replace("}", "")
-            pairs = inner_data.split(",")
+        if "sensor:" in clean_data:
+            result: dict = {}
+            clean_data = clean_data.replace('"', '').replace("'", "")
+            pairs = clean_data.split(",")
             for pair in pairs:
                 if ":" in pair:
                     key, value = pair.split(":", 1)
                     result[key.strip()] = value.strip()
+            result["type"] = "json"
             return result
-
-        elif isinstance(data, str) and "," in clean_data:
-            parts = clean_data.split(",")
-            for part in parts:
-                result[part.strip()] = True
-            return result
-
-        elif isinstance(data, str) and "Real-time sensor stream" in data:
+        if "user" in clean_data:
+            items = [item.strip() for item in clean_data.split(",")]
+            action_count = items.count("action")
             return {
-                "real-time sensor stream": True,
-                "readings": 5,
-                "avg": 22.1
+                "type": "csv",
+                "headers": items,
+                "count": action_count
+            }
+
+        if "sensor stream" in clean_data:
+            parts = clean_data.split(":")
+            values = []
+            if len(parts) > 1:
+                list_nums = parts[1].split(",")
+                for nb in list_nums:
+                    try:
+                        values.append(float(nb.strip()))
+                    except ValueError:
+                        continue
+            return {
+                "type": "stream",
+                "values": values,
+                "count": len(values)
             }
 
         return {}
@@ -65,18 +73,37 @@ class TransformStage:
     Stage 2: Simulates data transformation.
     """
     def process(self, data: Any) -> Dict:
+        if not isinstance(data, dict):
+            return data
 
-        if isinstance(data, dict):
-            if "sensor" in data and "value" in data:
-                try:
-                    data["value"] = float(data["value"])
-                    print("Transform: Enriched with metadata and validation")
-                except ValueError:
-                    raise ValueError("Invalid data format")
-            elif "user" in data:
-                print("Transform: Parsed and structured data")
-            elif "real-time sensor stream" in data:
-                print("Transform: Aggregated and filtered")
+        if data.get("type") == "json":
+            try:
+                data["value"] = float(data["value"])
+                if data["value"] > 0 and data["value"] < 60:
+                    data["status"] = "Normal range"
+                else:
+                    data["status"] = "Out of range"
+                print("Transform: Enriched with metadata and validation")
+            except ValueError:
+                raise ValueError("Invalid data format")
+
+        elif data.get("type") == "csv":
+            print("Transform: Parsed and structured data")
+
+        elif data.get("type") == "stream":
+            values = data.get("values", [])
+            try:
+                if values:
+                    avg = sum(values) / len(values)
+                    data["avg"] = round(avg, 1)
+                    data["readings"] = len(values)
+                    print("Transform: Aggregated and filtered")
+                else:
+                    data["avg"] = 0.0
+                    data["readings"] = 0
+            except Exception as e:
+                print(f"Transform Error: {e}")
+
         return data
 
 
@@ -86,25 +113,30 @@ class OutputStage:
     """
     def process(self, data: Any) -> str:
         message = ""
+
         if isinstance(data, dict) and data.get("status") == "recovered":
             message = "Output: [RECOVERED] System running on backup data."
             return message
 
-        elif "sensor" in data:
+        elif isinstance(data, dict) and "sensor" in data:
             val = data.get("value")
-            status = data.get("status", "Normal range")
+            status = data.get("status")
             message = ("Output: Processed temperature reading: "
                        f"{val}°C ({status})")
-        elif "user" in data:
-            count = data.get("actions_count", 1)
+
+        elif isinstance(data, dict) and data.get("type") == "csv":
+            count = data.get("count", 0)
             message = (f"Output: User activity logged: {count} "
                        "actions processed")
-        elif "real-time sensor stream" in data:
+
+        elif isinstance(data, dict) and data.get("type") == "stream":
             count = data.get("readings", 0)
             avg = data.get("avg", 0.0)
             message = f"Output: Stream summary: {count} readings, avg: {avg}°C"
+
         else:
             message = f"Output: {str(data)}"
+
         print(f"{message}\n")
         return message
 
@@ -137,11 +169,7 @@ class JSONAdapter(ProcessingPipeline):
         self.add_stage(OutputStage())
 
     def process(self, data: Any) -> Any:
-        is_backup = (isinstance(data, dict) and
-                     data.get("status") == "recovered")
-        is_error_test = (isinstance(data, str) and "unknown_text" in data)
-
-        if not (is_backup or is_error_test):
+        if not (isinstance(data, str) and "unknown" in data):
             print("Processing JSON data through pipeline...")
             print(f"Input: {data}")
         return super().process(data)
@@ -156,10 +184,7 @@ class CSVAdapter(ProcessingPipeline):
         self.add_stage(OutputStage())
 
     def process(self, data: Any) -> Any:
-        is_backup = (isinstance(data, dict) and
-                     data.get("status") == "recovered")
-
-        if not is_backup:
+        if not (isinstance(data, str) and "unknown" in data):
             print("Processing CSV data through same pipeline...")
             print(f"Input: {data}")
         return super().process(data)
@@ -174,10 +199,8 @@ class StreamAdapter(ProcessingPipeline):
         self.add_stage(OutputStage())
 
     def process(self, data: Any) -> Any:
-        is_backup = (isinstance(data, dict) and
-                     data.get("status") == "recovered")
 
-        if not is_backup:
+        if not (isinstance(data, str) and "unknown" in data):
             print("Processing Stream data through same pipeline..")
             print(f"Input: {data}")
         return super().process(data)
@@ -195,15 +218,20 @@ class NexusManager:
 
     def process_all(self, data_input: List[Any]) -> Any:
         result: Any = data_input
+
         for pipeline in self.pipelines:
             try:
                 result = pipeline.process(result)
             except ValueError as e:
                 print(f"Error detected in Stage 2: {e}")
                 print("Recovery initiated: Switching to backup processor")
-                result = self.get_backup_data()
+                backup_data = self.get_backup_data()
                 print("Recovery successful: Pipeline restored, "
                       "processing resumed")
+                output_stage = OutputStage()
+                output_stage.process(backup_data)
+                return backup_data
+
             except Exception as e:
                 print(f"Critical Error: {e}")
 
@@ -232,7 +260,7 @@ def main() -> None:
     csv_input = "user,action,timestamp"
     csv_pipe.process(csv_input)
 
-    stream_input = "Real-time sensor stream"
+    stream_input = "Real-time sensor stream: 22.5, 20.0, 23.8"
     stream_pipe.process(stream_input)
 
     nexus.add_pipeline(json_pipe)
@@ -247,7 +275,7 @@ def main() -> None:
 
     print("\n=== Error Recovery Test ===")
     print("Simulating pipeline failure...")
-    bad_data_input: str = "sensor:test,value:unknown_text"
+    bad_data_input: str = "sensor: test, value: unknown_text"
     nexus.process_all(bad_data_input)
 
     print("\nNexus Integration complete. All systems operational.")
