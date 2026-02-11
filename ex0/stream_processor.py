@@ -164,6 +164,9 @@ class LogProcessor(DataProcessor):
             A formatted string indicating the log level and message content.
         '''
 
+        if not isinstance(data, str) or not data.strip():
+            return "Error: Invalid input data"
+
         words = data.split(":", 1)
         level = words[0].strip()
         if len(words) <= 1 or not words[1].strip():

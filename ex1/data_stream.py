@@ -154,8 +154,9 @@ class SensorStream(DataStream):
             for item in data_batch:
                 parsed = self.parse_line(item)
                 if parsed:
+                    _, value_str = parsed
                     try:
-                        val = float(parsed[1])
+                        val = float(value_str)
                         if self.is_critical(val):
                             filtered.append(item)
                     except ValueError:
@@ -246,8 +247,9 @@ class TransactionStream(DataStream):
             for item in data_batch:
                 parsed = self.parse_line(item)
                 if parsed:
+                    _, val_str = parsed
                     try:
-                        val = int(parsed[1])
+                        val = int(val_str)
                         if val >= 100:
                             filtered.append(item)
                     except ValueError:
