@@ -22,16 +22,14 @@ class InputStage:
     """
 
     def process(self, data: Any) -> Dict:
-        if isinstance(data, dict):
-            return data
-
-        if isinstance(data, str) and "[RECOVERED]" in data:
-            return {"status": "recovered", "info": "backup_active"}
 
         clean_data = str(data).strip()
+        result: dict = {}
 
-        if "sensor:" in clean_data:
-            result: dict = {}
+        if isinstance(data, str) and "[RECOVERED]" in data:
+            result = {"status": "recovered", "info": "backup_active"}
+
+        elif "sensor:" in clean_data:
             clean_data = clean_data.replace('"', '').replace("'", "")
             pairs = clean_data.split(",")
             for pair in pairs:
@@ -39,18 +37,18 @@ class InputStage:
                     key, value = pair.split(":", 1)
                     result[key.strip()] = value.strip()
             result["type"] = "json"
-            return result
-        if "user" in clean_data:
+
+        elif "user" in clean_data:
             items = [item.strip() for item in clean_data.split(",")]
             action_count = items.count("action")
-            return {
+            result = {
                 "type": "csv",
                 "headers": items,
                 "count": action_count
             }
 
-        if "sensor stream" in clean_data:
-            parts = clean_data.split(":")
+        elif "sensor stream" in clean_data:
+            parts = clean_data.split(":", 1)
             values = []
             if len(parts) > 1:
                 list_nums = parts[1].split(",")
@@ -59,13 +57,14 @@ class InputStage:
                         values.append(float(nb.strip()))
                     except ValueError:
                         continue
-            return {
+            result = {
                 "type": "stream",
                 "values": values,
                 "count": len(values)
-            }
-
-        return {}
+                }
+        else:
+            raise ValueError(f"Input format not recognized: {clean_data}")
+        return result
 
 
 class TransformStage:
@@ -78,32 +77,33 @@ class TransformStage:
 
         if data.get("type") == "json":
             try:
+                if "value" not in data:
+                    raise ValueError("Missing 'value' key in input data")
                 data["value"] = float(data["value"])
                 if data["value"] > 0 and data["value"] < 60:
                     data["status"] = "Normal range"
                 else:
                     data["status"] = "Out of range"
                 print("Transform: Enriched with metadata and validation")
-            except ValueError:
-                raise ValueError("Invalid data format")
+            except ValueError as e:
+                raise ValueError(f"JSON Transform Error: {e}")
 
         elif data.get("type") == "csv":
             print("Transform: Parsed and structured data")
 
         elif data.get("type") == "stream":
-            values = data.get("values", [])
-            try:
-                if values:
-                    avg = sum(values) / len(values)
-                    data["avg"] = round(avg, 1)
-                    data["readings"] = len(values)
-                    print("Transform: Aggregated and filtered")
-                else:
-                    data["avg"] = 0.0
-                    data["readings"] = 0
-            except Exception as e:
-                print(f"Transform Error: {e}")
+            values_stream = data.get("values")
+            if not values_stream:
+                raise ValueError("Stream contained no valid numerical data")
 
+            if values_stream:
+                avg = sum(values_stream) / len(values_stream)
+                data["avg"] = round(avg, 1)
+                data["readings"] = len(values_stream)
+                print("Transform: Aggregated and filtered")
+            else:
+                data["avg"] = 0.0
+                data["readings"] = 0
         return data
 
 
@@ -257,20 +257,29 @@ def main() -> None:
     print("=== Multi-Format Data Processing ===\n")
 
     json_input = "sensor: temp, value: 23.5, unit: C"
-    json_pipe.process(json_input)
+    try:
+        json_pipe.process(json_input)
+    except Exception as e:
+        print(f"{e}\n")
 
     csv_input = "user,action,timestamp"
-    csv_pipe.process(csv_input)
+    try:
+        csv_pipe.process(csv_input)
+    except Exception as e:
+        print(f"{e}\n")
 
     stream_input = "Real-time sensor stream: 22.5, 20.0, 23.8"
-    stream_pipe.process(stream_input)
+    try:
+        stream_pipe.process(stream_input)
+    except Exception as e:
+        print(f"{e}\n")
 
+    print("=== Pipeline Chaining Demo ===")
     nexus.add_pipeline(json_pipe)
     nexus.add_pipeline(csv_pipe)
     nexus.add_pipeline(stream_pipe)
-
-    print("=== Pipeline Chaining Demo ===")
     print("Pipeline A -> Pipeline B -> Pipeline C\n")
+
     final_result = nexus.process_all("sensor: temp, value: 24.0")
     print(f"Final Chain Output: {final_result}")
     print("Data flow: Raw -> Processed -> Analyzed -> Stored")
