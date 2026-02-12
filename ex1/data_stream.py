@@ -125,16 +125,14 @@ class SensorStream(DataStream):
         if not temperatures:
             return f"Stream {self.stream_id}: No temperature data found"
 
-        avg = sum(temperatures) / len(temperatures)
-        self.last_avg = avg
+        self.last_avg = sum(temperatures) / len(temperatures)
 
         alerts = [temp for temp in temperatures if self.is_critical(temp)]
-        status_msg = ""
-        if alerts:
-            status_msg = f", ALERT ({len(alerts)} extreme values)"
+        status_msg = (
+            f", ALERT ({len(alerts)} extreme values)" if alerts else "")
 
         return (f"Sensor analysis: {len(data_batch)} readings processed, "
-                f"avg temp: {avg:.1f}°C{status_msg}")
+                f"avg temp: {self.last_avg:.1f}°C{status_msg}")
 
     def filter_data(
             self, data_batch: List[Any],
