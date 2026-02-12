@@ -46,10 +46,14 @@ class DataStream(ABC):
         Returns:
             A list of data items that meet the filter criteria.
         """
-        if not criteria:
-            return data_batch
+        try:
+            if not criteria:
+                return data_batch
 
-        return data_batch
+            return data_batch
+        except Exception as e:
+            print(f"Warning: Filter failed for stream {self.stream_id}: {e}")
+            return []
 
     def get_stats(self) -> Dict[str, Union[str, int, float]]:
         """Retrieve statistics about the data stream.
@@ -340,7 +344,12 @@ class StreamProcessor():
             stream: An instance of a DataStream subclass to be added to the
                     processor.
         """
-        self.streams[stream.stream_id] = stream
+        try:
+            if not isinstance(stream, DataStream):
+                raise TypeError("Object must inherit from DataStream")
+            self.streams[stream.stream_id] = stream
+        except Exception as e:
+            print(f"Error adding stream: {e}")
 
     def process_stream(self, stream_id: str, data_batch: List[Any]) -> str:
         """Process a batch of data through the specified stream.
@@ -409,28 +418,32 @@ def main() -> None:
     poly_trans_data = ["buy:1120", "sell:15", "buy:12", "sell:11"]
     poly_event_data = ["login", "user", "logout"]
 
-    res1 = processor.process_stream("SENSOR_001", poly_sensor_data)
-    if "Sensor analysis" in res1:
-        clean_res1 = res1.split(",")[0].replace("Sensor analysis",
-                                                "Sensor data")
-        print(f"- {clean_res1}")
-    else:
-        print(f"- {res1}")
+    try:
+        res1 = processor.process_stream("SENSOR_001", poly_sensor_data)
+        if "Sensor analysis" in res1:
+            clean_res1 = res1.split(",")[0].replace("Sensor analysis",
+                                                    "Sensor data")
+            print(f"- {clean_res1}")
+        else:
+            print(f"- {res1}")
 
-    res2 = processor.process_stream("TRANS_001", poly_trans_data)
-    if "Event analysis" in res2:
-        clean_res2 = res2.split(",")[0].replace(
-            "Transaction analysis", "Transaction data")
-        print(f"- {clean_res2} processed")
-    else:
-        print(f"- {res2}")
+        res2 = processor.process_stream("TRANS_001", poly_trans_data)
+        if "Event analysis" in res2:
+            clean_res2 = res2.split(",")[0].replace(
+                "Transaction analysis", "Transaction data")
+            print(f"- {clean_res2} processed")
+        else:
+            print(f"- {res2}")
 
-    res3 = processor.process_stream("EVENT_001", poly_event_data)
-    if "Event analysis" in res3:
-        clean_res3 = res3.split(",")[0].replace("Event analysis", "Event data")
-        print(f"- {clean_res3} processed")
-    else:
-        print(f"- {res3}")
+        res3 = processor.process_stream("EVENT_001", poly_event_data)
+        if "Event analysis" in res3:
+            clean_res3 = res3.split(",")[0].replace(
+                "Event analysis", "Event data")
+            print(f"- {clean_res3} processed")
+        else:
+            print(f"- {res3}")
+    except IndexError as e:
+        print(f"Error parsing display results: {e}")
 
     print("\nStream filtering active: High-priority data only")
 

@@ -59,24 +59,29 @@ class NumericProcessor(DataProcessor):
         Returns:
             A formatted string with the count, sum, and average of the numbers.
         '''
-        work_data = data if isinstance(data, List) else [data]
+        try:
+            work_data = data if isinstance(data, List) else [data]
 
-        nb_total = len(work_data)
-        if nb_total == 0:
-            raise ValueError("Cannot calculate average: data list is empty")
+            nb_total = len(work_data)
+            if nb_total == 0:
+                raise ValueError("Cannot calculate average: data list is"
+                                 "empty")
 
-        sum_total = sum(work_data)
-        avg = sum_total / nb_total
+            sum_total = sum(work_data)
+            avg = sum_total / nb_total
 
-        stats: Dict[str, Union[int, float]] = {
-            "sum": sum_total,
-            "avg": avg,
-            "count": nb_total
-        }
+            stats: Dict[str, Union[int, float]] = {
+                "sum": sum_total,
+                "avg": avg,
+                "count": nb_total
+            }
 
-        return (f"processed {stats['count']} numeric values, "
-                f"sum={stats['sum']}, "
-                f"avg={stats['avg']:.1f}")
+            return (f"processed {stats['count']} numeric values, "
+                    f"sum={stats['sum']}, "
+                    f"avg={stats['avg']:.1f}")
+
+        except Exception as e:
+            return f"Error: Numeric processing failed - {e}"
 
     def validate(self, data: Any) -> bool:
         '''Validate that the input data is either a number or a list of
@@ -88,9 +93,11 @@ class NumericProcessor(DataProcessor):
         '''
         if isinstance(data, (int, float)):
             return True
-
-        return isinstance(data, list) and all(
-            isinstance(nb, (int, float)) for nb in data)
+        try:
+            return isinstance(data, list) and all(
+                isinstance(nb, (int, float)) for nb in data)
+        except TypeError:
+            return False
 
     def format_output(self, result: str) -> str:
         '''Override the base class method to add a prefix for numeric results.
@@ -114,10 +121,16 @@ class TextProcessor(DataProcessor):
             A formatted string with the count of characters and words in
             the text.
         '''
-        nb_characters = len(data)
-        nb_words = len(data.split())
-        return (f"processed text: {nb_characters} characters, "
-                f"{nb_words} words")
+        try:
+            if not isinstance(data, str):
+                raise TypeError("Input must be a string")
+
+            nb_characters = len(data)
+            nb_words = len(data.split())
+            return (f"processed text: {nb_characters} characters, "
+                    f"{nb_words} words")
+        except Exception as e:
+            return f"Error: Text processing failed - {e}"
 
     def validate(self, data: Any) -> bool:
         '''Validate that the input data is a string.
@@ -150,19 +163,26 @@ class LogProcessor(DataProcessor):
         Returns:
             A formatted string indicating the log level and message content.
         '''
+        try:
+            if not isinstance(data, str) or not data.strip():
+                raise ValueError("Error: Invalid input data")
 
-        if not isinstance(data, str) or not data.strip():
-            return "Error: Invalid input data"
+            if ":" not in data:
+                raise ValueError("Missing separator ':' in log entry")
+            words = data.split(":", 1)
+            level = words[0].strip()
+            if len(words) <= 1 or not words[1].strip():
+                message = "No message content"
+            else:
+                message = words[1].strip()
 
-        words = data.split(":", 1)
-        level = words[0].strip()
-        if len(words) <= 1 or not words[1].strip():
-            message = "No message content"
-        else:
-            message = words[1].strip()
+            tag = "ALERT" if level == "ERROR" else level
+            return f"[{tag}] {level} level detected: {message}"
 
-        tag = "ALERT" if level == "ERROR" else level
-        return f"[{tag}] {level} level detected: {message}"
+        except ValueError as e:
+            return f"Error: Log format issue - {e}"
+        except Exception as e:
+            return f"Error: Log processing failed - {e}"
 
     def validate(self, data: Any) -> bool:
         '''Validate that the input data is a string containing a log level and
@@ -172,7 +192,10 @@ class LogProcessor(DataProcessor):
         Returns:
             True if the data is a valid log entry, False otherwise.
         '''
-        return isinstance(data, str) and ":" in data
+        try:
+            return isinstance(data, str) and ":" in data
+        except Exception:
+            return False
 
     def format_output(self, result: str) -> str:
         '''Override the base class method to add a prefix for log results.
