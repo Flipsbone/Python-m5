@@ -67,7 +67,8 @@ class DataStream(ABC):
             "stream_type": self.stream_type
             }
 
-    def parse_line(self, item: Any) -> Optional[tuple[str, str]]:
+    @staticmethod
+    def parse_line(item: Any) -> Optional[tuple[str, str]]:
         """Parse a data item into a key-value pair if possible.
         Args:
             item: The data item to be parsed, expected to be a string in the
