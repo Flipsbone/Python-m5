@@ -428,7 +428,7 @@ def main() -> None:
             print(f"- {res1}")
 
         res2 = processor.process_stream("TRANS_001", poly_trans_data)
-        if "Event analysis" in res2:
+        if "Transaction analysis" in res2:
             clean_res2 = res2.split(",")[0].replace(
                 "Transaction analysis", "Transaction data")
             print(f"- {clean_res2} processed")

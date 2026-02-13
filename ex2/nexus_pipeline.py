@@ -280,7 +280,7 @@ def main() -> None:
     nexus.add_pipeline(stream_pipe)
     print("Pipeline A -> Pipeline B -> Pipeline C\n")
 
-    final_result = nexus.process_all("sensor: temp, value: 24.0")
+    final_result = nexus.process_all(["sensor: temp, value: 24.0"])
     print(f"Final Chain Output: {final_result}")
     print("Data flow: Raw -> Processed -> Analyzed -> Stored")
     print("\nChain result: 100 records processed through 3-stage pipeline")
@@ -288,7 +288,7 @@ def main() -> None:
 
     print("\n=== Error Recovery Test ===")
     print("Simulating pipeline failure...")
-    bad_data_input: str = "sensor: test, value: unknown_text"
+    bad_data_input: List[str] = ["sensor: test, value: unknown_text"]
     nexus.process_all(bad_data_input)
 
     print("\nNexus Integration complete. All systems operational.")
